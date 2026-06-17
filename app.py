@@ -1,8 +1,8 @@
 import streamlit as st
-
 import pandas as pd
 
 from components.data_exploration import display_dataset_information
+from components.visualization import display_visualizations
 
 st.title("AI Business Intelligence Copilot")
 
@@ -19,4 +19,8 @@ if uploaded_file is not None:
     st.header("Dataset Preview")
     st.dataframe(df.head())
 
+    # Data exploration
     display_dataset_information(df)
+
+    # Data visualization
+    display_visualizations(df)
