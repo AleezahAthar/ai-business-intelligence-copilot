@@ -33,8 +33,8 @@ def display_dataset_information(df):
     st.dataframe(df.nunique())
 
     st.subheader("Sample Rows")
-    st.dataframe(df.sample(5))
-
+    st.dataframe(df.sample(min(5, len(df))))
+    
     st.subheader("Numeric Columns")
     st.write(df.select_dtypes(include="number").columns.tolist())
 

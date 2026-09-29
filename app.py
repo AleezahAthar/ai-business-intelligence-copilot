@@ -1,3 +1,5 @@
+import hashlib
+
 import pandas as pd
 import streamlit as st
 
@@ -24,7 +26,7 @@ st.write(
     "through one interactive application."
 )
 
-# File upload belongs in the sidebar because it controls the entire application
+# The uploaded file controls the dataset used throughout the app.
 with st.sidebar:
     st.header("Dataset")
 
@@ -37,27 +39,26 @@ with st.sidebar:
 if uploaded_file is not None:
 
     try:
-        # Read the newly uploaded file
+        # Read the uploaded CSV into a DataFrame.
         uploaded_df = pd.read_csv(uploaded_file)
 
-        # Preserve an original copy and create a separate working copy
+        # The file fingerprint detects changed contents even when
+        # the new upload has the same filename.
         initialize_dataframes(
             df=uploaded_df,
             file_name=uploaded_file.name,
+            file_id=hashlib.sha256(uploaded_file.getvalue()).hexdigest(),
         )
 
-        # Always retrieve the latest working DataFrame from session state
+        # Use the working copy so cleaning does not alter the original.
         working_df = st.session_state["working_df"]
 
-        # Show compact dataset information in the sidebar
         with st.sidebar:
             st.success("File uploaded successfully")
-
             st.write(f"**File:** {uploaded_file.name}")
             st.write(f"**Rows:** {len(working_df):,}")
             st.write(f"**Columns:** {len(working_df.columns)}")
 
-        # Separate the major parts of the application
         overview_tab, cleaning_tab, visualization_tab = st.tabs(
             [
                 "Overview",
@@ -74,9 +75,10 @@ if uploaded_file is not None:
 
             st.subheader("Dataset Preview")
 
+            # Starting at 1 allows CSVs with fewer than five rows.
             preview_rows = st.slider(
                 "Number of rows to preview",
-                min_value=5,
+                min_value=1,
                 max_value=min(50, len(working_df)),
                 value=min(10, len(working_df)),
             )
@@ -94,7 +96,22 @@ if uploaded_file is not None:
         with cleaning_tab:
             display_reset_section()
 
-        # Retrieve the DataFrame again because cleaning controls may update it
+            st.divider()
+            st.subheader("Download Working Dataset")
+
+            # Export the current working copy, including cleaning changes.
+            st.download_button(
+                label="Download cleaned CSV",
+                data=st.session_state["working_df"]
+                .to_csv(index=False)
+                .encode("utf-8"),
+                file_name=(
+                    f"{uploaded_file.name.rsplit('.', 1)[0]}_cleaned.csv"
+                ),
+                mime="text/csv",
+            )
+
+        # Retrieve the DataFrame again after the cleaning controls.
         working_df = st.session_state["working_df"]
 
         # -----------------------------

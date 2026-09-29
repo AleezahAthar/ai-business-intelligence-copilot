@@ -5,20 +5,21 @@ import streamlit as st
 def initialize_dataframes(
     df: pd.DataFrame,
     file_name: str,
+    file_id: str,
 ) -> None:
     """
     Store an original and working copy of an uploaded DataFrame.
 
-    The DataFrames are recreated only when the user uploads
-    a file with a different filename.
+    Recreate both copies when the uploaded file's contents change.
     """
 
-    current_file_name = st.session_state.get("uploaded_file_name")
+    current_file_id = st.session_state.get("uploaded_file_id")
 
-    if current_file_name != file_name:
+    if current_file_id != file_id:
         st.session_state["original_df"] = df.copy(deep=True)
         st.session_state["working_df"] = df.copy(deep=True)
         st.session_state["uploaded_file_name"] = file_name
+        st.session_state["uploaded_file_id"] = file_id
 
         # Clear messages left over from a previously uploaded dataset.
         st.session_state.pop("duplicate_message", None)
