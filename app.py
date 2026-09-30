@@ -8,25 +8,23 @@ from components.data_cleaning import (
     initialize_dataframes,
 )
 from components.data_exploration import display_dataset_information
+from components.data_qa import display_data_qa
 from components.visualization import display_visualizations
 
 
-# Browser tab and page settings
 st.set_page_config(
     page_title="AI Business Intelligence Copilot",
     page_icon="📊",
     layout="wide",
 )
 
-# Main application heading
 st.title("AI Business Intelligence Copilot")
 
 st.write(
-    "Upload, prepare, explore, and visualize business data "
-    "through one interactive application."
+    "Upload, prepare, explore, visualize, and ask questions "
+    "about business data through one interactive application."
 )
 
-# The uploaded file controls the dataset used throughout the app.
 with st.sidebar:
     st.header("Dataset")
 
@@ -37,20 +35,18 @@ with st.sidebar:
 
 
 if uploaded_file is not None:
-
     try:
-        # Read the uploaded CSV into a DataFrame.
         uploaded_df = pd.read_csv(uploaded_file)
 
-        # The file fingerprint detects changed contents even when
-        # the new upload has the same filename.
+        # Detect changed file contents, including files with the same name.
         initialize_dataframes(
             df=uploaded_df,
             file_name=uploaded_file.name,
-            file_id=hashlib.sha256(uploaded_file.getvalue()).hexdigest(),
+            file_id=hashlib.sha256(
+                uploaded_file.getvalue()
+            ).hexdigest(),
         )
 
-        # Use the working copy so cleaning does not alter the original.
         working_df = st.session_state["working_df"]
 
         with st.sidebar:
@@ -59,29 +55,32 @@ if uploaded_file is not None:
             st.write(f"**Rows:** {len(working_df):,}")
             st.write(f"**Columns:** {len(working_df.columns)}")
 
-        overview_tab, cleaning_tab, visualization_tab = st.tabs(
+        overview_tab, cleaning_tab, visualization_tab, qa_tab = st.tabs(
             [
                 "Overview",
                 "Data Cleaning",
                 "Visualization",
+                "Q&A",
             ]
         )
 
         # -----------------------------
-        # Overview tab
+        # Overview
         # -----------------------------
         with overview_tab:
             st.header("Dataset Overview")
-
             st.subheader("Dataset Preview")
 
-            # Starting at 1 allows CSVs with fewer than five rows.
-            preview_rows = st.slider(
-                "Number of rows to preview",
-                min_value=1,
-                max_value=min(50, len(working_df)),
-                value=min(10, len(working_df)),
-            )
+            # A slider needs at least two possible values.
+            if len(working_df) > 1:
+                preview_rows = st.slider(
+                    "Number of rows to preview",
+                    min_value=1,
+                    max_value=min(50, len(working_df)),
+                    value=min(10, len(working_df)),
+                )
+            else:
+                preview_rows = len(working_df)
 
             st.dataframe(
                 working_df.head(preview_rows),
@@ -91,7 +90,7 @@ if uploaded_file is not None:
             display_dataset_information(working_df)
 
         # -----------------------------
-        # Data Cleaning tab
+        # Data Cleaning
         # -----------------------------
         with cleaning_tab:
             display_reset_section()
@@ -99,7 +98,6 @@ if uploaded_file is not None:
             st.divider()
             st.subheader("Download Working Dataset")
 
-            # Export the current working copy, including cleaning changes.
             st.download_button(
                 label="Download cleaned CSV",
                 data=st.session_state["working_df"]
@@ -111,14 +109,20 @@ if uploaded_file is not None:
                 mime="text/csv",
             )
 
-        # Retrieve the DataFrame again after the cleaning controls.
+        # Retrieve the current data for charts and answers.
         working_df = st.session_state["working_df"]
 
         # -----------------------------
-        # Visualization tab
+        # Visualization
         # -----------------------------
         with visualization_tab:
             display_visualizations(working_df)
+
+        # -----------------------------
+        # Q&A
+        # -----------------------------
+        with qa_tab:
+            display_data_qa(working_df)
 
     except pd.errors.EmptyDataError:
         st.error("The uploaded CSV file is empty.")
@@ -142,7 +146,8 @@ else:
         1. Upload a CSV dataset.
         2. Review its structure and data quality.
         3. Clean and prepare a separate working copy.
-        4. Create visualizations from the cleaned dataset.
-        5. Use the cleaned dataset for future AI analysis.
+        4. Create visualizations from the working dataset.
+        5. Answer questions about the working dataset.
+        6. Download the prepared dataset.
         """
     )
