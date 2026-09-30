@@ -2,7 +2,12 @@
 
 An interactive application for uploading, cleaning, exploring, visualizing, and asking questions about CSV datasets.
 
-Try the built-in fictional sales dataset or upload your own CSV. The application preserves the original data while maintaining a separate working copy for analysis.
+**[Try the Live Demo](https://ai-bi-copilot-aleezah.streamlit.app/)**
+
+No installation required. Start with the built-in fictional sales dataset or upload your own CSV.
+
+The application preserves the original data while maintaining a separate working copy for analysis.
+
 
 ## Features
 
