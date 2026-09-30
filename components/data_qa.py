@@ -241,7 +241,7 @@ def display_answer(
 
 
 def display_guided_questions(df: pd.DataFrame) -> None:
-    """Display the existing dropdown-based questions."""
+    """Display dropdown-based questions."""
 
     numeric_columns = (
         df.select_dtypes(include="number").columns.tolist()
@@ -296,7 +296,7 @@ def display_guided_questions(df: pd.DataFrame) -> None:
 
 
 def display_ai_questions(df: pd.DataFrame) -> None:
-    """Display typed questions and handle Gemini errors."""
+    """Display typed questions with visitor-friendly error messages."""
 
     st.write(
         "Ask for a row count, total, average, minimum, "
@@ -315,8 +315,8 @@ def display_ai_questions(df: pd.DataFrame) -> None:
 
     if not api_key:
         st.info(
-            "Add GEMINI_API_KEY to .streamlit/secrets.toml "
-            "and restart the app to enable AI questions."
+            "AI questions are currently unavailable. "
+            "Switch to Guided questions to explore your data."
         )
         return
 
@@ -342,7 +342,10 @@ def display_ai_questions(df: pd.DataFrame) -> None:
         return
 
     try:
-        with st.spinner("Interpreting your question..."):
+        with st.spinner(
+            "Interpreting your question… "
+            "This may take a little longer when the AI service is busy."
+        ):
             plan = interpret_question(
                 question=question,
                 df=df,
@@ -354,46 +357,45 @@ def display_ai_questions(df: pd.DataFrame) -> None:
     except errors.APIError as error:
         if error.code == 429:
             st.warning(
-                "Gemini's request limit has been reached. "
-                "Try again later or use Guided questions."
+                "The AI service has reached its request limit. "
+                "Please try again later, or switch to Guided questions "
+                "for an immediate calculation."
             )
 
-        elif error.code in (400, 401, 403):
+        elif error.code in (408, 500, 502, 503, 504):
+            st.warning(
+                "The AI service is busy or taking longer than expected. "
+                "Please wait a moment and click Get answer again, "
+                "or switch to Guided questions "
+                "for an immediate calculation."
+            )
+
+        elif error.code in (400, 401, 403, 404):
             st.error(
-                "Gemini could not accept this request. "
-                "Check your API key and project access."
+                "AI questions are currently unavailable "
+                "for this request. Please use Guided questions."
             )
-
-        elif error.code == 404:
-            st.error(f"Gemini returned 404: {error.message}")
 
         else:
-            st.error(
-                "Gemini is temporarily unavailable. "
-                "Try again later or use Guided questions."
+            st.warning(
+                "The AI service could not complete your request. "
+                "Please try again shortly, or switch to Guided questions."
             )
-
-        # Show diagnostic details without displaying the API key.
-        safe_message = str(error.message).replace(
-            api_key,
-            "[REDACTED]",
-        )
-
-        with st.expander("Gemini error details"):
-            st.write(f"Requested model: {MODEL_NAME}")
-            st.write(f"API error code: {error.code}")
-            st.text(safe_message)
 
     except (ValidationError, ValueError):
         st.warning(
-            "Gemini did not return a valid question interpretation. "
-            "Please rephrase your question."
+            "We couldn't interpret that question. "
+            "Try rephrasing it—for example, "
+            "'What is the total revenue?'—"
+            "or use Guided questions."
         )
 
     except Exception:
-        st.error(
-            "The AI request could not be completed. "
-            "Check your connection and try again."
+        st.warning(
+            "We couldn't get an AI response. "
+            "The service may be temporarily unavailable "
+            "or the connection may have been interrupted. "
+            "Please try again shortly, or switch to Guided questions."
         )
 
 
